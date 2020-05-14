@@ -1,5 +1,10 @@
 from sort import *
 
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+
 def parse_args():
     """Parse input arguments."""
     parser = argparse.ArgumentParser(description='SORT demo')
