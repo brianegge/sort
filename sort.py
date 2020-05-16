@@ -101,6 +101,7 @@ class KalmanBoxTracker(object):
     Initialises a tracker using initial bounding box.
     """
     self.original_id = bbox[5] # <--- add to keep track of original IDs
+    self.original_bbox = bbox[:4] # <--- keep track of where this object first appeared
     #define constant velocity model
     self.kf = KalmanFilter(dim_x=7, dim_z=4) 
     self.kf.F = np.array([[1,0,0,0,1,0,0],[0,1,0,0,0,1,0],[0,0,1,0,0,0,1],[0,0,0,1,0,0,0],  [0,0,0,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1]])
