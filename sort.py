@@ -77,6 +77,16 @@ def convert_bbox_to_z(bbox):
   r = w / float(h)
   return np.array([x, y, s, r]).reshape((4, 1))
 
+def convert_bbox_to_center(bbox):
+  """
+  Takes a bounding box in the form [x1,y1,x2,y2] and returns 
+  [x,y] where x,y is the centre of the box
+  """
+  w = bbox[2] - bbox[0]
+  h = bbox[3] - bbox[1]
+  x = bbox[0] + w/2.
+  y = bbox[1] + h/2.
+  return np.array([x, y]).reshape((2, 1))
 
 def convert_x_to_bbox(x,score=None):
   """
@@ -101,7 +111,7 @@ class KalmanBoxTracker(object):
     Initialises a tracker using initial bounding box.
     """
     self.original_id = bbox[5] # <--- add to keep track of original IDs
-    self.original_bbox = bbox[:4] # <--- keep track of where this object first appeared
+    
     #define constant velocity model
     self.kf = KalmanFilter(dim_x=7, dim_z=4) 
     self.kf.F = np.array([[1,0,0,0,1,0,0],[0,1,0,0,0,1,0],[0,0,1,0,0,0,1],[0,0,0,1,0,0,0],  [0,0,0,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1]])
@@ -113,7 +123,9 @@ class KalmanBoxTracker(object):
     self.kf.Q[-1,-1] *= 0.01
     self.kf.Q[4:,4:] *= 0.01
 
-    self.kf.x[:4] = convert_bbox_to_z(bbox)
+    z = convert_bbox_to_z(bbox)
+    self.kf.x[:4] = z
+    self.original_center = z # <--- keep track of where this object first appeared
     self.time_since_update = 0
     self.id = KalmanBoxTracker.count
     KalmanBoxTracker.count += 1
@@ -121,6 +133,7 @@ class KalmanBoxTracker(object):
     self.hits = 0
     self.hit_streak = 0
     self.age = 0
+    self.speed = 0
 
   def update(self,bbox):
     """
@@ -131,7 +144,9 @@ class KalmanBoxTracker(object):
     self.hits += 1
     self.hit_streak += 1
     self.original_id = bbox[5]  # <--- update to keep track of original IDs
-    self.kf.update(convert_bbox_to_z(bbox))
+    z = convert_bbox_to_z(bbox)
+    self.kf.update(z)
+    self.speed = np.linalg.norm(z[:2] - self.original_center[:2]) / self.age
 
   def predict(self):
     """
